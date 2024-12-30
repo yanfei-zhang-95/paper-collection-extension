@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Collection</title>
+  <style>
+    body {
+      width: 500px;
+      padding: 0;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .notification {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px;
+      text-align: center;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 1000;
+    }
+    .notification.show {
+      transform: translateY(0);
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      padding-top: 8px;
+    }
+    .paper-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    input, textarea {
+      width: 95%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button.delete {
+      background-color: #f44336;
+    }
+    button.delete:hover {
+      background-color: #da190b;
+    }
+    button.edit {
+      background-color: #2196F3;
+    }
+    button.edit:hover {
+      background-color: #0b7dda;
+    }
+    button.toggle-abstract {
+      background-color: #757575;
+      font-size: 12px;
+      padding: 2px 6px;
+      margin: 2px 0;
+    }
+    button.toggle-abstract:hover {
+      background-color: #616161;
+    }
+    .search-container {
+      margin-top: 16px;
+    }
+    .paper-list {
+      max-height: 300px;
+      overflow-y: auto;
+      width: 99%;
+    }
+    .paper-item {
+      border: 1px solid #ddd;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+    }
+    .paper-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4px;
+    }
+    .paper-header strong {
+      flex: 1;
+      margin-right: 8px;
+    }
+    .paper-time {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+    }
+    .edit-time {
+      font-size: 12px;
+      color: #666;
+      margin-left: 8px;
+    }
+    .paper-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .paper-actions button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .edit-mode {
+      background-color: #f5f5f5;
+    }
+    .edit-mode textarea {
+      margin-top: 8px;
+    }
+    .abstract-container {
+      margin: 4px 0;
+    }
+    .abstract-text {
+      display: block;
+      margin-bottom: 4px;
+      line-height: 1.4;
+      transition: max-height 0.3s ease-out;
+    }
+    .abstract-text.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .abstract-text.expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+    }
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .export-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 4px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .export-button:hover {
+      background-color: #45a049;
+    }
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .input-group input,
+    .input-group textarea {
+      flex: 1;
+    }
+    .edit-fields-button {
+      background-color: #757575;
+      padding: 4px 8px;
+      font-size: 12px;
+      height: 28px;
+      min-width: 60px;
+    }
+    .edit-fields-button:hover {
+      background-color: #616161;
+    }
+    .paper-form input[readonly],
+    .paper-form textarea[readonly] {
+      background-color: #f5f5f5;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    .search-options {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+    .search-options-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .search-option {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .search-option input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    .filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1976d2;
+    }
+    .needs-improvement {
+      background-color: #fff3e0;
+      color: #e65100;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .has-github {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .paper-count {
+      margin-left: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div id="notification" class="notification"></div>
+  <div class="container">
+    <h2>Paper Collection</h2>
+    
+    <div class="paper-form">
+      <div class="input-group">
+        <input type="text" id="title" placeholder="Paper Title" readonly>
+        <button id="editFields" class="edit-fields-button">Edit</button>
+      </div>
+      <input type="text" id="authors" placeholder="Authors" readonly>
+      <textarea id="abstract" placeholder="Abstract" rows="3" readonly></textarea>
+      <textarea id="comment" placeholder="Your Comments" rows="2"></textarea>
+      <div class="checkbox-group">
+        <input type="checkbox" id="needsImprovement">
+        <label for="needsImprovement">Mark as "Needs Improvement in Understanding"</label>
+        <input type="checkbox" id="hasGithub" style="margin-left: 16px;">
+        <label for="hasGithub">Has GitHub Repository</label>
+      </div>
+      <button id="savePaper">Save Paper</button>
+    </div>
+
+    <div class="search-container">
+      <div class="action-bar">
+        <input type="text" id="searchInput" placeholder="Search papers...">
+        <button id="exportExcel" class="export-button">Export to Excel</button>
+      </div>
+      <div class="search-options">
+        <div class="search-option">
+          <input type="checkbox" id="filterNeedsImprovement">
+          <label for="filterNeedsImprovement">Show only papers marked as "Needs Improvement"</label>
+          <input type="checkbox" id="filterHasGithub" style="margin-left: 16px;">
+          <label for="filterHasGithub">Show only papers with GitHub</label>
+          <span id="paperCount" class="paper-count"></span>
+        </div>
+        <div class="search-options-group">
+          <div class="search-option">
+            <input type="checkbox" id="searchTitle" checked>
+            <label for="searchTitle">Title</label>
+          </div>
+          <div class="search-option">
+            <input type="checkbox" id="searchAuthors" checked>
+            <label for="searchAuthors">Authors</label>
+          </div>
+          <div class="search-option">
+            <input type="checkbox" id="searchAbstract" checked>
+            <label for="searchAbstract">Abstract</label>
+          </div>
+          <div class="search-option">
+            <input type="checkbox" id="searchComments" checked>
+            <label for="searchComments">Comments</label>
+          </div>
+        </div>
+      </div>
+      <div class="paper-list" id="paperList">
+        <!-- Papers will be listed here -->
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
