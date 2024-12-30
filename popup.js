@@ -706,4 +706,98 @@ Last Edited: ${formatDate(paper.lastEdited)}` : ''}`;
 
   // Initial paper list update
   updatePaperList();
+
+  function generatePaperCard(paper) {
+    const canvas = document.createElement('canvas');
+    const ctx = ctx = canvas.getContext('2d');
+    
+    // 设置卡片基本样式
+    const cardPadding = 30;
+    const lineHeight = 24;
+    const maxWidth = 800;
+    
+    // 设置字体样式
+    ctx.font = 'bold 20px Arial';
+    const titleLines = getWrappedLines(paper.title, ctx, maxWidth - 2 * cardPadding);
+    
+    ctx.font = '16px Arial';
+    const authorLines = getWrappedLines(`Authors: ${paper.authors}`, ctx, maxWidth - 2 * cardPadding);
+    
+    let commentLines = [];
+    if (paper.comment) {
+        ctx.font = '16px Arial';
+        commentLines = getWrappedLines(`Comment: ${paper.comment}`, ctx, maxWidth - 2 * cardPadding);
+    }
+    
+    // 计算卡片高度
+    const totalHeight = cardPadding * 2 + 
+                       titleLines.length * lineHeight + 
+                       authorLines.length * lineHeight +
+                       (paper.comment ? commentLines.length * lineHeight : 0) +
+                       lineHeight * 2; // 额外空间用于分隔
+    
+    // 设置画布尺寸
+    canvas.width = maxWidth;
+    canvas.height = totalHeight;
+    
+    // 绘制背景
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制边框
+    ctx.strokeStyle = '#dee2e6';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+    
+    let currentY = cardPadding;
+    
+    // 绘制标题
+    ctx.fillStyle = '#212529';
+    ctx.font = 'bold 20px Arial';
+    titleLines.forEach(line => {
+        ctx.fillText(line, cardPadding, currentY + lineHeight);
+        currentY += lineHeight;
+    });
+    
+    currentY += lineHeight / 2; // 添加间距
+    
+    // 绘制作者
+    ctx.fillStyle = '#495057';
+    ctx.font = '16px Arial';
+    authorLines.forEach(line => {
+        ctx.fillText(line, cardPadding, currentY + lineHeight);
+        currentY += lineHeight;
+    });
+    
+    // 如果有评论，绘制评论
+    if (paper.comment) {
+        currentY += lineHeight / 2; // 添加间距
+        ctx.fillStyle = '#6c757d';
+        commentLines.forEach(line => {
+            ctx.fillText(line, cardPadding, currentY + lineHeight);
+            currentY += lineHeight;
+        });
+    }
+    
+    return canvas;
+  }
+
+  function getWrappedLines(text, ctx, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = ctx.measureText(currentLine + ' ' + word).width;
+        if (width < maxWidth) {
+            currentLine += ' ' + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    return lines;
+  }
 }); 
