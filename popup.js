@@ -298,6 +298,271 @@ document.addEventListener('DOMContentLoaded', function() {
     checkbox.addEventListener('change', updatePaperList);
   });
 
+  // 分享功能相关变量
+  const shareModal = document.getElementById('shareModal');
+  const shareCardText = document.getElementById('shareCardText');
+  const shareCanvas = document.getElementById('shareCanvas');
+  const closeShareButton = document.querySelector('.share-card-close');
+  const copyButtons = document.querySelectorAll('.copy-button');
+
+  // 关闭分享模态框
+  closeShareButton.addEventListener('click', function() {
+    shareModal.classList.remove('show');
+  });
+
+  // 点击模态框外部关闭
+  shareModal.addEventListener('click', function(e) {
+    if (e.target === shareModal) {
+      shareModal.classList.remove('show');
+    }
+  });
+
+  // 生成分享文本
+  function generateShareText(paper) {
+    return `📄 ${paper.title}
+
+👥 Authors: ${paper.authors}
+
+${paper.comment ? `💭 Comment:
+${paper.comment}
+
+` : ''}${paper.needsImprovement ? '⚠️ Needs Improvement in Understanding\n' : ''}${paper.hasGithub ? '💻 Has GitHub Repository\n' : ''}
+🔗 Link: ${paper.url}
+
+Added: ${formatDate(paper.timestamp)}${paper.lastEdited ? `
+Last Edited: ${formatDate(paper.lastEdited)}` : ''}`;
+  }
+
+  // 生成分享图片
+  async function generateShareImage(paper) {
+    const canvas = shareCanvas;
+    const ctx = canvas.getContext('2d');
+    
+    // 设置字体以便计算文本高度
+    ctx.font = 'bold 24px Arial';
+    
+    // 计算所需的总高度
+    let totalHeight = 40; // 初始上边距
+    
+    // 计算标题高度
+    const titleLines = getLines(ctx, paper.title, 760); // 800 - 40(左右边距)
+    totalHeight += titleLines.length * 30;
+    
+    // 计算作者高度
+    ctx.font = '18px Arial';
+    const authors = `Authors: ${paper.authors}`;
+    const authorLines = getLines(ctx, authors, 760);
+    totalHeight += 20 + authorLines.length * 25; // 20是段间距
+    
+    // 计算评论高度（如果有）
+    if (paper.comment) {
+      totalHeight += 20;
+      const comment = `Comment: ${paper.comment}`;
+      const commentLines = getLines(ctx, comment, 760);
+      totalHeight += commentLines.length * 25;
+    }
+    
+    // 计算标记高度
+    if (paper.needsImprovement || paper.hasGithub) {
+      totalHeight += 20;
+      if (paper.needsImprovement) totalHeight += 25;
+      if (paper.hasGithub) totalHeight += 25;
+    }
+    
+    // 链接和时间信息的高度
+    totalHeight += 60; // 链接
+    totalHeight += 40; // 时间信息
+    if (paper.lastEdited) totalHeight += 25;
+    
+    totalHeight += 40; // 底部边距
+    
+    // 设置画布大小
+    canvas.width = 800;
+    canvas.height = totalHeight;
+    
+    // 设置背景
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 开始绘制内容
+    let y = 40;
+    
+    // 绘制标题
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 24px Arial';
+    titleLines.forEach(line => {
+      ctx.fillText(line, 20, y);
+      y += 30;
+    });
+    
+    // 绘制作者
+    y += 20;
+    ctx.font = '18px Arial';
+    authorLines.forEach(line => {
+      ctx.fillText(line, 20, y);
+      y += 25;
+    });
+    
+    // 绘制评论（如果有）
+    if (paper.comment) {
+      y += 20;
+      ctx.fillStyle = '#666666';
+      const commentLines = getLines(ctx, `Comment: ${paper.comment}`, 760);
+      commentLines.forEach(line => {
+        ctx.fillText(line, 20, y);
+        y += 25;
+      });
+    }
+    
+    // 绘制标记
+    y += 20;
+    ctx.fillStyle = '#000000';
+    if (paper.needsImprovement) {
+      ctx.fillText('⚠️ Needs Improvement in Understanding', 20, y);
+      y += 25;
+    }
+    if (paper.hasGithub) {
+      ctx.fillText('💻 Has GitHub Repository', 20, y);
+      y += 25;
+    }
+    
+    // 绘制链接
+    y += 20;
+    ctx.fillStyle = '#1976d2';
+    ctx.fillText(`🔗 ${paper.url}`, 20, y);
+    
+    // 绘制时间信息
+    y += 40;
+    ctx.fillStyle = '#666666';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Added: ${formatDate(paper.timestamp)}`, 20, y);
+    if (paper.lastEdited) {
+      y += 25;
+      ctx.fillText(`Last Edited: ${formatDate(paper.lastEdited)}`, 20, y);
+    }
+    
+    return canvas;
+  }
+
+  // 辅助函数：将文本分行（支持中英文）
+  function getLines(ctx, text, maxWidth) {
+    const lines = [];
+    let currentLine = '';
+    let currentWidth = 0;
+
+    // 遍历每个字符
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const charWidth = ctx.measureText(char).width;
+
+      // 如果是英文单词，尝试完整保留
+      if (/[a-zA-Z]/.test(char)) {
+        let word = char;
+        let j = i + 1;
+        // 向后查找完整的单词
+        while (j < text.length && /[a-zA-Z]/.test(text[j])) {
+          word += text[j];
+          j++;
+        }
+        const wordWidth = ctx.measureText(word).width;
+
+        // 如果当前行加上这个单词超出宽度限制
+        if (currentWidth + wordWidth > maxWidth) {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+            currentWidth = wordWidth;
+          } else {
+            // 如果单词本身就超过一行
+            lines.push(word);
+            currentLine = '';
+            currentWidth = 0;
+          }
+        } else {
+          currentLine += word;
+          currentWidth += wordWidth;
+        }
+        i = j - 1; // 跳过已处理的字符
+      } else {
+        // 对于非英文字符（包括中文、标点等）
+        if (currentWidth + charWidth > maxWidth) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentWidth = charWidth;
+        } else {
+          currentLine += char;
+          currentWidth += charWidth;
+        }
+      }
+
+      // 处理空格
+      if (char === ' ' && currentLine) {
+        const spaceWidth = ctx.measureText(' ').width;
+        if (currentWidth + spaceWidth <= maxWidth) {
+          currentLine += ' ';
+          currentWidth += spaceWidth;
+        }
+      }
+    }
+
+    // 添加最后一行
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  }
+
+  // 复制到剪贴板
+  copyButtons.forEach(button => {
+    button.addEventListener('click', async function() {
+      const type = this.dataset.type;
+      const notification = document.getElementById('notification');
+      
+      try {
+        if (type === 'text') {
+          await navigator.clipboard.writeText(shareCardText.innerText);
+          notification.textContent = '文本已复制到剪贴板';
+        } else if (type === 'image') {
+          const paper = JSON.parse(shareCardText.dataset.paper);
+          const canvas = await generateShareImage(paper);
+          
+          try {
+            // 尝试将图片直接复制到剪贴板
+            canvas.toBlob(async (blob) => {
+              try {
+                const clipboardItem = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([clipboardItem]);
+                notification.textContent = '图片已复制到剪贴板';
+              } catch (err) {
+                console.error('Failed to copy to clipboard:', err);
+                // 如果复制到剪贴板失败，退回到下载方式
+                const downloadLink = document.createElement('a');
+                downloadLink.href = canvas.toDataURL('image/png');
+                downloadLink.download = `${paper.title.slice(0, 30)}_share.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                notification.textContent = '图片已下载（复制到剪贴板失败）';
+              }
+            }, 'image/png');
+          } catch (err) {
+            console.error('Failed to create blob:', err);
+            notification.textContent = '分享失败，请重试';
+          }
+        }
+        
+        notification.classList.add('show');
+        setTimeout(() => notification.classList.remove('show'), 2000);
+      } catch (err) {
+        console.error('Failed to share:', err);
+        notification.textContent = '分享失败，请重试';
+        notification.classList.add('show');
+        setTimeout(() => notification.classList.remove('show'), 2000);
+      }
+    });
+  });
+
   function updatePaperList() {
     chrome.storage.local.get(['papers'], function(result) {
       const papers = result.papers || [];
@@ -419,6 +684,20 @@ document.addEventListener('DOMContentLoaded', function() {
             updatePaperList();
           });
         });
+
+        // 添加分享按钮
+        const shareButton = document.createElement('button');
+        shareButton.className = 'share-button';
+        shareButton.textContent = 'Share';
+        shareButton.addEventListener('click', function() {
+          const shareText = generateShareText(paper);
+          shareCardText.innerText = shareText;
+          shareCardText.dataset.paper = JSON.stringify(paper);
+          shareModal.classList.add('show');
+        });
+        
+        const paperActions = paperElement.querySelector('.paper-actions');
+        paperActions.appendChild(shareButton);
 
         paperList.appendChild(paperElement);
       });
