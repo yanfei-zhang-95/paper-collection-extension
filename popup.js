@@ -338,108 +338,104 @@ Last Edited: ${formatDate(paper.lastEdited)}` : ''}`;
     const canvas = shareCanvas;
     const ctx = canvas.getContext('2d');
     
-    // 设置字体以便计算文本高度
-    ctx.font = 'bold 24px Arial';
+    // 设置基本参数
+    const padding = 20;
+    const lineHeight = 25;
+    const maxWidth = 600;
     
     // 计算所需的总高度
-    let totalHeight = 40; // 初始上边距
+    let totalHeight = padding;
     
-    // 计算标题高度
-    const titleLines = getLines(ctx, paper.title, 760); // 800 - 40(左右边距)
-    totalHeight += titleLines.length * 30;
+    // 标题"Share Paper"的高度
+    ctx.font = 'bold 24px Arial';
+    totalHeight += 45; // 增加标题部分的高度，为间距留出更多空间
     
-    // 计算作者高度
-    ctx.font = '18px Arial';
-    const authors = `Authors: ${paper.authors}`;
-    const authorLines = getLines(ctx, authors, 760);
-    totalHeight += 20 + authorLines.length * 25; // 20是段间距
+    // 计算论文标题的高度
+    ctx.font = '16px Arial';
+    const titleLines = getLines(ctx, paper.title, maxWidth - 60);
+    totalHeight += titleLines.length * lineHeight + 15;
     
-    // 计算评论高度（如果有）
+    // 计算作者的高度
+    const authorLines = getLines(ctx, `Authors: ${paper.authors}`, maxWidth - 60);
+    totalHeight += authorLines.length * lineHeight + 15;
+    
+    // 计算评论的高度（如果有）
+    let commentLines = [];
     if (paper.comment) {
-      totalHeight += 20;
-      const comment = `Comment: ${paper.comment}`;
-      const commentLines = getLines(ctx, comment, 760);
-      totalHeight += commentLines.length * 25;
+        commentLines = getLines(ctx, `Comment: ${paper.comment}`, maxWidth - 60);
+        totalHeight += commentLines.length * lineHeight + 15;
     }
     
-    // 计算标记高度
-    if (paper.needsImprovement || paper.hasGithub) {
-      totalHeight += 20;
-      if (paper.needsImprovement) totalHeight += 25;
-      if (paper.hasGithub) totalHeight += 25;
+    // 计算标记的高度
+    if (paper.needsImprovement) {
+        totalHeight += lineHeight;
+    }
+    if (paper.hasGithub) {
+        totalHeight += lineHeight;
     }
     
-    // 链接和时间信息的高度
-    totalHeight += 60; // 链接
-    totalHeight += 40; // 时间信息
-    if (paper.lastEdited) totalHeight += 25;
+    // 链接的高度
+    totalHeight += lineHeight + padding;
     
-    totalHeight += 40; // 底部边距
-    
-    // 设置画布大小
-    canvas.width = 800;
+    // 设置画布尺寸
+    canvas.width = maxWidth;
     canvas.height = totalHeight;
     
-    // 设置背景
+    // 设置背景色
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // 开始绘制内容
-    let y = 40;
+    let y = padding;
     
-    // 绘制标题
-    ctx.fillStyle = '#000000';
+    // 绘制标题 "Share Paper"
     ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('Share Paper', padding, y + 24);
+    y += 60; // 增加标题和内容之间的间距
+    
+    // 绘制论文标题
+    ctx.font = '16px Arial';
+    ctx.fillText('📄', padding, y);
     titleLines.forEach(line => {
-      ctx.fillText(line, 20, y);
-      y += 30;
+        ctx.fillText(line, padding + 25, y);
+        y += lineHeight;
     });
+    y += 15;
     
     // 绘制作者
-    y += 20;
-    ctx.font = '18px Arial';
+    ctx.fillText('👥', padding, y);
     authorLines.forEach(line => {
-      ctx.fillText(line, 20, y);
-      y += 25;
+        ctx.fillText(line, padding + 25, y);
+        y += lineHeight;
     });
+    y += 15;
     
     // 绘制评论（如果有）
     if (paper.comment) {
-      y += 20;
-      ctx.fillStyle = '#666666';
-      const commentLines = getLines(ctx, `Comment: ${paper.comment}`, 760);
-      commentLines.forEach(line => {
-        ctx.fillText(line, 20, y);
-        y += 25;
-      });
+        ctx.fillText('💭', padding, y);
+        commentLines.forEach(line => {
+            ctx.fillText(line, padding + 25, y);
+            y += lineHeight;
+        });
+        y += 15;
     }
     
     // 绘制标记
-    y += 20;
-    ctx.fillStyle = '#000000';
     if (paper.needsImprovement) {
-      ctx.fillText('⚠️ Needs Improvement in Understanding', 20, y);
-      y += 25;
+        ctx.fillText('⚠️ Needs Improvement in Understanding', padding, y);
+        y += lineHeight;
     }
     if (paper.hasGithub) {
-      ctx.fillText('💻 Has GitHub Repository', 20, y);
-      y += 25;
+        ctx.fillText('💻 Has GitHub Repository', padding, y);
+        y += lineHeight;
     }
     
     // 绘制链接
-    y += 20;
+    y += 5;
+    ctx.fillText('🔗', padding, y);
     ctx.fillStyle = '#1976d2';
-    ctx.fillText(`🔗 ${paper.url}`, 20, y);
-    
-    // 绘制时间信息
-    y += 40;
-    ctx.fillStyle = '#666666';
-    ctx.font = '16px Arial';
-    ctx.fillText(`Added: ${formatDate(paper.timestamp)}`, 20, y);
-    if (paper.lastEdited) {
-      y += 25;
-      ctx.fillText(`Last Edited: ${formatDate(paper.lastEdited)}`, 20, y);
-    }
+    ctx.fillText(`Link: ${paper.url}`, padding + 25, y);
     
     return canvas;
   }
