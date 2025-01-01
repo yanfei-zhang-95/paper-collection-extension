@@ -119,6 +119,10 @@ document.addEventListener('DOMContentLoaded', function() {
           fieldName = 'needsImprovement';
         } else if (header === 'Has GitHub') {
           fieldName = 'hasGithub';
+        } else if (header === 'Added Date') {
+          fieldName = 'timestamp';
+        } else if (header === 'Last Edited') {
+          fieldName = 'lastEdited';
         }
         paper[fieldName] = values[index];
       });
@@ -139,8 +143,13 @@ document.addEventListener('DOMContentLoaded', function() {
         continue;
       }
 
-      // 添加时间戳
-      paper.timestamp = paper.timestamp || new Date().toISOString();
+      // 处理时间字段
+      if (!paper.timestamp || paper.timestamp.trim() === '') {
+        paper.timestamp = new Date().toISOString();
+      }
+      if (paper.lastEdited && paper.lastEdited.trim() === '') {
+        delete paper.lastEdited;
+      }
       
       // 处理布尔值字段
       paper.needsImprovement = paper.needsImprovement === 'Yes' || paper.needsImprovement === 'true' || paper.needsImprovement === 'TRUE' || paper.needsImprovement === '1';
