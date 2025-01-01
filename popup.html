@@ -19,7 +19,7 @@
       background-color: #4CAF50;
       color: white;
       padding: 12px;
-      text-align: center;
+      text-align: left;
       transform: translateY(-100%);
       transition: transform 0.3s ease-in-out;
       z-index: 1000;
@@ -363,7 +363,11 @@
     <div class="search-container">
       <div class="action-bar">
         <input type="text" id="searchInput" placeholder="Search papers...">
-        <button id="exportExcel" class="export-button">Export to Excel</button>
+        <div style="display: flex; gap: 8px;">
+          <input type="file" id="importFile" accept=".csv" style="display: none;">
+          <button id="importExcel" class="export-button" style="background-color: #2196F3;">Import CSV</button>
+          <button id="exportExcel" class="export-button">Export to Excel</button>
+        </div>
       </div>
       <div class="search-options">
         <div class="search-option">

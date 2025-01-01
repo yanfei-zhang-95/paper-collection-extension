@@ -21,9 +21,15 @@
   - 支持展开/收起摘要
   - 支持快速编辑评论
   - 支持删除论文
-- 导出功能：
+- 导入/导出功能：
+  - 支持从CSV文件导入论文
+    - 必需字段：Title、Authors、URL、Abstract
+    - 自动检查并跳过重复论文
+    - 详细的导入结果提示
+    - 支持批量导入
   - 支持导出为Excel（CSV格式）
-  - 导出包含所有论文信息和标记
+    - 导出包含所有论文信息和标记
+    - 支持导出当前筛选结果
 - 分享功能：
   - 支持以文本格式分享（复制到剪贴板）
   - 支持以图片格式分享（复制到剪贴板或下载）
@@ -95,3 +101,55 @@
 - 建议定期导出数据进行备份
 - 相同标题或URL的论文会被视为重复，系统会提示并突出显示已存在的条目
 - 分享功能支持长文本自动换行，确保内容完整显示 
+
+## Recent Updates
+
+### 2024-01-28
+1. Added paper count display feature
+   - Shows the total number of papers in the current filtered list
+   - Updates automatically when filters or search criteria change
+
+2. Added GitHub repository filter
+   - New checkbox to filter papers that have GitHub repositories
+   - Works similarly to the existing "Needs Improvement" filter
+
+3. Enhanced paper sharing functionality
+   - Added two sharing options: text and image formats
+   - Both formats are copied directly to clipboard
+   - Improved card layout and styling
+   - Removed abstract from shared content for brevity
+
+4. Improved CSV import functionality
+   - Added Abstract as a required field for import
+   - Enhanced error reporting for failed imports
+   - Shows detailed information about import failures in the notification:
+     * Successfully imported papers count
+     * Skipped duplicate papers count
+     * Failed imports with specific reasons (line number, title, and failure reason)
+   - Required fields for import: Title, Authors, URL, and Abstract 
+
+## 导入功能说明
+
+1. CSV文件格式要求：
+   - 必需字段：Title、Authors、URL、Abstract
+   - 可选字段：Comment、Needs Improvement、Has GitHub
+   - 字段名称大小写敏感
+   - 支持使用双引号包裹含有逗号或换行符的内容
+
+2. 导入步骤：
+   - 点击"Import CSV"按钮
+   - 选择符合格式要求的CSV文件
+   - 系统会自动处理导入
+
+3. 导入结果提示：
+   - 成功导入的论文数量
+   - 跳过的重复论文数量（基于标题匹配）
+   - 导入失败的详细信息：
+     * 行号
+     * 论文标题（如果有）
+     * 失败原因（缺少必需字段、列数不匹配等）
+
+4. 注意事项：
+   - 重复论文会自动跳过，不会覆盖已有记录
+   - 确保CSV文件使用UTF-8编码
+   - 建议先导出一份数据作为模板参考 

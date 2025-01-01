@@ -16,6 +16,214 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchAbstractCheckbox = document.getElementById('searchAbstract');
   const searchCommentsCheckbox = document.getElementById('searchComments');
   const hasGithubCheckbox = document.getElementById('hasGithub');
+  const importButton = document.getElementById('importExcel');
+  const importFileInput = document.getElementById('importFile');
+
+  // 导入功能
+  importButton.addEventListener('click', function() {
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const csvContent = e.target.result;
+        const parseResult = await parseCsvContent(csvContent);
+        if (parseResult.papers.length > 0 || parseResult.failedImports.length > 0) {
+          const result = await importPapers(parseResult.papers);
+          
+          // 清空文件输入，允许重复导入相同文件
+          importFileInput.value = '';
+          
+          // 更新论文列表显示
+          updatePaperList();
+          
+          // 显示导入结果提示
+          const notification = document.getElementById('notification');
+          let messages = [];
+          
+          // 成功导入的数量
+          if (result.importCount > 0) {
+            messages.push(`Successfully imported ${result.importCount} papers`);
+          }
+          
+          // 重复的数量
+          if (result.duplicateCount > 0) {
+            messages.push(`Skipped ${result.duplicateCount} duplicate papers`);
+          }
+          
+          // 导入失败的详细信息
+          if (parseResult.failedImports.length > 0) {
+            messages.push(`Failed to import ${parseResult.failedImports.length} papers:`);
+            parseResult.failedImports.forEach(failure => {
+              const lineInfo = `Line ${failure.line}${failure.title ? ` (${failure.title})` : ''}: ${failure.reason}`;
+              messages.push(lineInfo);
+            });
+          }
+          
+          notification.innerHTML = messages.join('<br>');
+          notification.classList.add('show');
+          setTimeout(() => notification.classList.remove('show'), 8000);
+        }
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // 解析CSV内容
+  async function parseCsvContent(csvContent) {
+    // 将CSV内容按行分割
+    const lines = csvContent.split(/\r\n|\n/);
+    if (lines.length < 2) {
+      throw new Error('CSV file is empty or invalid');
+    }
+
+    // 解析表头
+    const headers = parseCSVLine(lines[0]);
+    
+    // 检查必需的字段
+    const requiredFields = ['Title', 'Authors', 'URL', 'Abstract'];
+    const missingFields = requiredFields.filter(field => !headers.includes(field));
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields in CSV header: ${missingFields.join(', ')}`);
+    }
+
+    // 解析数据行
+    const papers = [];
+    const failedImports = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; // 跳过空行
+      
+      const values = parseCSVLine(lines[i]);
+      if (values.length !== headers.length) {
+        failedImports.push({
+          line: i + 1,
+          reason: 'Column count mismatch'
+        });
+        continue;
+      }
+
+      // 创建论文对象
+      const paper = {};
+      headers.forEach((header, index) => {
+        paper[header.toLowerCase().replace(/\s+/g, '')] = values[index];
+      });
+
+      // 检查必需字段
+      const missingRequiredFields = [];
+      if (!paper.title) missingRequiredFields.push('Title');
+      if (!paper.authors) missingRequiredFields.push('Authors');
+      if (!paper.url) missingRequiredFields.push('URL');
+      if (!paper.abstract) missingRequiredFields.push('Abstract');
+
+      if (missingRequiredFields.length > 0) {
+        failedImports.push({
+          line: i + 1,
+          title: paper.title || '[No Title]',
+          reason: `Missing required fields: ${missingRequiredFields.join(', ')}`
+        });
+        continue;
+      }
+
+      // 添加时间戳
+      paper.timestamp = paper.timestamp || new Date().toISOString();
+      
+      // 处理布尔值字段
+      paper.needsimprovement = paper.needsimprovement === 'Yes';
+      paper.hasgithub = paper.hasgithub === 'Yes';
+
+      papers.push(paper);
+    }
+
+    return {
+      papers,
+      failedImports
+    };
+  }
+
+  // 解析CSV行，处理引号包裹的字段
+  function parseCSVLine(line) {
+    const values = [];
+    let currentValue = '';
+    let isInsideQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        if (isInsideQuotes && line[i + 1] === '"') {
+          // 处理双引号转义
+          currentValue += '"';
+          i++;
+        } else {
+          // 切换引号状态
+          isInsideQuotes = !isInsideQuotes;
+        }
+      } else if (char === ',' && !isInsideQuotes) {
+        // 字段结束
+        values.push(currentValue.trim());
+        currentValue = '';
+      } else {
+        currentValue += char;
+      }
+    }
+    
+    // 添加最后一个字段
+    values.push(currentValue.trim());
+    
+    return values;
+  }
+
+  // 导入论文到存储
+  async function importPapers(newPapers) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['papers'], function(result) {
+        const existingPapers = result.papers || [];
+        
+        // 检查并合并论文
+        const mergedPapers = [...existingPapers];
+        let importCount = 0;
+        let duplicateCount = 0;
+        const duplicateDetails = [];
+        
+        newPapers.forEach(newPaper => {
+          // 检查是否已存在（通过标题匹配，不区分大小写）
+          const existingPaper = existingPapers.find(paper => 
+            paper.title.toLowerCase() === newPaper.title.toLowerCase()
+          );
+          
+          if (existingPaper) {
+            duplicateCount++;
+            duplicateDetails.push({
+              title: newPaper.title,
+              existingDate: formatDate(existingPaper.timestamp),
+              newDate: formatDate(newPaper.timestamp || new Date().toISOString())
+            });
+          } else {
+            mergedPapers.push(newPaper);
+            importCount++;
+          }
+        });
+
+        // 保存合并后的论文列表
+        chrome.storage.local.set({papers: mergedPapers}, function() {
+          // 返回导入结果
+          resolve({
+            importCount,
+            duplicateCount,
+            duplicateDetails
+          });
+        });
+      });
+    });
+  }
 
   let editingPaperIndex = -1;
   let fieldsEditable = false;
@@ -58,14 +266,15 @@ document.addEventListener('DOMContentLoaded', function() {
   function exportToExcel(papers) {
     // 准备Excel数据
     const excelData = papers.map(paper => ({
-      'Title': paper.title,
-      'Authors': paper.authors,
-      'Abstract': paper.abstract,
-      'Comment': paper.comment || '',
-      'URL': paper.url,
-      'Added Date': formatDate(paper.timestamp),
-      'Last Edited': paper.lastEdited ? formatDate(paper.lastEdited) : '',
-      'Needs Improvement': paper.needsImprovement ? 'Yes' : 'No'
+      'Title': escapeCsvField(paper.title),
+      'Authors': escapeCsvField(paper.authors),
+      'Abstract': escapeCsvField(paper.abstract),
+      'Comment': escapeCsvField(paper.comment || ''),
+      'URL': escapeCsvField(paper.url),
+      'Added Date': escapeCsvField(formatDate(paper.timestamp)),
+      'Last Edited': escapeCsvField(paper.lastEdited ? formatDate(paper.lastEdited) : ''),
+      'Needs Improvement': paper.needsImprovement ? 'Yes' : 'No',
+      'Has GitHub': paper.hasGithub ? 'Yes' : 'No'
     }));
 
     // 创建CSV内容
@@ -73,9 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const csvContent = [
       headers.join(','),
       ...excelData.map(row => 
-        headers.map(header => 
-          JSON.stringify(row[header] || '')
-        ).join(',')
+        headers.map(header => row[header]).join(',')
       )
     ].join('\n');
 
@@ -96,6 +303,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // 清理
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  // 辅助函数：处理CSV字段，确保包含逗号、换行符等特殊字符的内容被正确处理
+  function escapeCsvField(field) {
+    if (field === null || field === undefined) {
+      return '';
+    }
+    
+    field = field.toString();
+    
+    // 如果字段包含逗号、双引号或换行符，需要进行特殊处理
+    if (field.includes(',') || field.includes('"') || field.includes('\n') || field.includes('\r')) {
+      // 将字段中的双引号替换为两个双引号
+      field = field.replace(/"/g, '""');
+      // 用双引号包裹整个字段
+      return `"${field}"`;
+    }
+    
+    return field;
   }
 
   // 获取当前筛选后的论文列表
