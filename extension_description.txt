@@ -1,0 +1,35 @@
+[English]
+Paper Collection - Your Academic Paper Manager
+
+A powerful Chrome extension for collecting and managing academic papers. Automatically extract paper information from popular academic websites, add personal notes, and organize your research materials efficiently.
+
+Key Features:
+• Auto-extraction of paper details (title, authors, abstract)
+• Personal comments and status tracking
+• Advanced search and filtering
+• Paper sharing (text/image format)
+• CSV import/export support
+• Local storage for data privacy
+
+Perfect for researchers, students, and anyone who needs to organize academic papers systematically.
+
+Supported Sites:
+arXiv, Google Scholar, IEEE Xplore, and more coming soon.
+
+[中文]
+论文收藏助手 - 您的学术论文管理工具
+
+这是一款功能强大的Chrome扩展，专为收藏和管理学术论文而设计。可以自动从主流学术网站提取论文信息，添加个人笔记，高效组织您的研究资料。
+
+主要功能：
+• 自动提取论文信息（标题、作者、摘要）
+• 个人评论和状态标记
+• 高级搜索和筛选
+• 论文分享（文本/图片格式）
+• 支持CSV导入导出
+• 本地存储保护隐私
+
+适合研究人员、学生以及所有需要系统整理学术论文的用户。
+
+支持网站：
+arXiv、谷歌学术、IEEE Xplore等，更多网站持续添加中。 

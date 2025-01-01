@@ -113,7 +113,14 @@ document.addEventListener('DOMContentLoaded', function() {
       // 创建论文对象
       const paper = {};
       headers.forEach((header, index) => {
-        paper[header.toLowerCase().replace(/\s+/g, '')] = values[index];
+        // 处理特殊字段名
+        let fieldName = header.toLowerCase().replace(/\s+/g, '');
+        if (header === 'Needs Improvement') {
+          fieldName = 'needsImprovement';
+        } else if (header === 'Has GitHub') {
+          fieldName = 'hasGithub';
+        }
+        paper[fieldName] = values[index];
       });
 
       // 检查必需字段
@@ -136,8 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
       paper.timestamp = paper.timestamp || new Date().toISOString();
       
       // 处理布尔值字段
-      paper.needsimprovement = paper.needsimprovement === 'Yes';
-      paper.hasgithub = paper.hasgithub === 'Yes';
+      paper.needsImprovement = paper.needsImprovement === 'Yes' || paper.needsImprovement === 'true' || paper.needsImprovement === 'TRUE' || paper.needsImprovement === '1';
+      paper.hasGithub = paper.hasGithub === 'Yes' || paper.hasGithub === 'true' || paper.hasGithub === 'TRUE' || paper.hasGithub === '1';
 
       papers.push(paper);
     }
